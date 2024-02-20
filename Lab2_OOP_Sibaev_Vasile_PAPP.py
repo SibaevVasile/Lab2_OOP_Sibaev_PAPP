@@ -128,7 +128,45 @@ class StudentManagementSystem:
             for line in lines:
                 data = line.strip().split(",")
                 self.create_student(*data)
+                
+    def batch_enrollment(self):
+        try:
+            filename = input("Enter the filename for batch enrollment: ")
+            with open(filename, "r") as file:
+                data = json.load(file)
+                for faculty_name, student_list in data.items():
+                    faculty = next((fac for fac in self.faculties if fac.name == faculty_name), None)
+                    if faculty:
+                        for student_data in student_list:
+                            student = Student(student_data["first_name"], student_data["last_name"], student_data["email"], student_data["enrollment_date"], student_data["date_of_birth"])
+                            faculty.add_student(student)
+                            self.log_manager.log_operation(f"Batch enrollment: Created student {student.first_name} {student.last_name} in faculty {faculty.name}")
+                    else:
+                        logging.error(f"Faculty '{faculty_name}' not found for batch enrollment.")
+        except FileNotFoundError:
+            logging.error(f"File '{filename}' not found for batch enrollment.")
+        except json.JSONDecodeError:
+            logging.error(f"Invalid JSON format in file '{filename}' for batch enrollment.")
+        except Exception as e:
+            logging.error(f"Error during batch enrollment: {str(e)}")
 
+    def batch_graduation(self):
+        try:
+            filename = input("Enter the filename for batch graduation: ")
+            with open(filename, "r") as file:
+                emails_to_graduate = json.load(file)
+                for email in emails_to_graduate:
+                    for faculty in self.faculties:
+                        if faculty.has_student(email):
+                            faculty.remove_student(email)
+                            self.log_manager.log_operation(f"Batch graduation: Graduated student with email {email} from faculty {faculty.name}")
+                            break
+        except FileNotFoundError:
+            logging.error(f"File '{filename}' not found for batch graduation.")
+        except json.JSONDecodeError:
+            logging.error(f"Invalid JSON format in file '{filename}' for batch graduation.")
+        except Exception as e:
+            logging.error(f"Error during batch graduation: {str(e)}")
 def main():
     system = StudentManagementSystem()
     system.load_system_state()
